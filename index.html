@@ -8,6 +8,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- PapaParse -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <!-- D3.js and d3-cloud for Word Cloud -->
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-cloud/1.2.5/d3.layout.cloud.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -52,6 +55,19 @@
     .chart-full {
       flex-basis: 100%;
     }
+    .word-cloud-box {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    #wordCloud {
+      width: 100%;
+      height: 300px;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -70,7 +86,7 @@
 <body>
   <header>
     <h1>Artist Payment Dashboard</h1>
-    <p>Explore payment reports and trends for venues and promoters</p>
+    <p>Explore aggregated payment reports and trends – protecting anonymity</p>
   </header>
   
   <div class="filter-container">
@@ -91,13 +107,20 @@
       <h3>Payment Method Breakdown</h3>
       <canvas id="paymentMethodBarChart"></canvas>
     </div>
-    <!-- Monthly Trend Line Chart -->
+    <!-- City Ranking Bar Chart -->
     <div class="chart-box chart-full">
-      <h3>Monthly On-Time Payment Trend</h3>
-      <canvas id="monthlyTrendLineChart"></canvas>
+      <h3>City Ranking (On-Time Payment %)</h3>
+      <canvas id="cityRankingBarChart"></canvas>
     </div>
   </div>
   
+  <!-- Word Cloud Section -->
+  <div class="word-cloud-box">
+    <h3>City Report Volume Word Cloud</h3>
+    <div id="wordCloud"></div>
+  </div>
+  
+  <!-- Data Table (without dates) -->
   <div class="table-container">
     <h2>Detailed Report Data</h2>
     <table id="dataTable">
@@ -105,9 +128,6 @@
         <tr>
           <th>Venue/Promoter Name</th>
           <th>City & Country</th>
-          <th>Date of Performance</th>
-          <th>Agreed Payment Date</th>
-          <th>Actual Payment Date</th>
           <th>Payment Method</th>
           <th>Paid on Time?</th>
           <th>If Late, How Late</th>
@@ -120,14 +140,14 @@
   </div>
   
   <script>
-    // Replace with your published CSV URL from Google Sheets
+    // Replace with your published CSV URL from Google Sheets (in CSV format)
     // Example: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3XXXXXXXXXXXX/pub?output=csv"
-    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPBLJHpqcD-XvAiW1wkXn9Rr8a_nOJWJ49EUd2mxtSSYDZ_Lau9nmJ5hAQZ-7_1fqiAuFntCNBnofb/pubhtml";
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPBLJHpqcD-XvAiW1wkXn9Rr8a_nOJWJ49EUd2mxtSSYDZ_Lau9nmJ5hAQZ-7_1fqiAuFntCNBnofb/pub?output=csv";
     let rawData = [];
     let filteredData = [];
 
     // Chart instances
-    let paymentPieChart, paymentMethodBarChart, monthlyTrendLineChart;
+    let paymentPieChart, paymentMethodBarChart, cityRankingBarChart;
 
     // Fetch CSV data using PapaParse
     function fetchData() {
@@ -163,7 +183,8 @@
       filteredData = selectedCity === "all" ? rawData : rawData.filter(row => row["City & Country"] === selectedCity);
       updatePieChart();
       updateBarChart();
-      updateLineChart();
+      updateCityRankingChart();
+      updateWordCloud();
       updateTable();
     }
 
@@ -243,62 +264,57 @@
       }
     }
 
-    // Update Monthly Trend Line Chart
-    function updateLineChart() {
-      // Aggregate on-time payment percentages by month (using "Date of Performance")
-      const monthlyData = {};
+    // Update City Ranking Bar Chart (aggregated on-time % by city)
+    function updateCityRankingChart() {
+      const cityData = {};
       filteredData.forEach(row => {
-        const dateStr = row["Date of Performance"];
-        if (dateStr) {
-          const dateObj = new Date(dateStr);
-          const month = dateObj.getFullYear() + "-" + (dateObj.getMonth() + 1).toString().padStart(2, "0");
-          if (!monthlyData[month]) monthlyData[month] = { total: 0, onTime: 0 };
-          monthlyData[month].total++;
-          const response = row["Were you paid on time?"];
-          if (response && response.trim().toLowerCase() === "yes") {
-            monthlyData[month].onTime++;
+        const city = row["City & Country"];
+        if (city) {
+          if (!cityData[city]) {
+            cityData[city] = { total: 0, onTime: 0 };
+          }
+          cityData[city].total++;
+          if (row["Were you paid on time?"] && row["Were you paid on time?"].trim().toLowerCase() === "yes") {
+            cityData[city].onTime++;
           }
         }
       });
-      const sortedMonths = Object.keys(monthlyData).sort();
-      const labels = sortedMonths;
-      const percentages = sortedMonths.map(month => {
-        const data = monthlyData[month];
-        return data.total ? ((data.onTime / data.total) * 100).toFixed(2) : 0;
-      });
+      // Prepare arrays of labels and on-time percentage (if any city exists)
+      const labels = [];
+      const percentages = [];
+      for (let city in cityData) {
+        labels.push(city);
+        const percent = (cityData[city].total ? (cityData[city].onTime / cityData[city].total) * 100 : 0).toFixed(2);
+        percentages.push(percent);
+      }
       const data = {
         labels: labels,
         datasets: [{
           label: "On-Time Payment (%)",
           data: percentages,
-          borderColor: "#ff9800",
-          fill: false,
-          tension: 0.1
+          backgroundColor: "#9c27b0"
         }]
       };
-      const ctx = document.getElementById("monthlyTrendLineChart").getContext("2d");
-      if (monthlyTrendLineChart) {
-        monthlyTrendLineChart.data = data;
-        monthlyTrendLineChart.update();
+      const ctx = document.getElementById("cityRankingBarChart").getContext("2d");
+      if (cityRankingBarChart) {
+        cityRankingBarChart.data = data;
+        cityRankingBarChart.update();
       } else {
-        monthlyTrendLineChart = new Chart(ctx, {
-          type: "line",
+        cityRankingBarChart = new Chart(ctx, {
+          type: "bar",
           data: data,
           options: {
+            indexAxis: "y",
             responsive: true,
             plugins: {
-              legend: { position: "bottom" },
-              title: { display: true, text: "Monthly On-Time Payment Trend (%)" }
+              legend: { display: false },
+              title: { display: true, text: "City Ranking (On-Time %)" }
             },
             scales: {
-              y: {
+              x: {
                 beginAtZero: true,
                 max: 100,
-                ticks: {
-                  callback: function(value) {
-                    return value + "%";
-                  }
-                }
+                ticks: { callback: value => value + "%" }
               }
             }
           }
@@ -306,7 +322,58 @@
       }
     }
 
-    // Update Data Table
+    // Update Word Cloud (using d3-cloud)
+    function updateWordCloud() {
+      // Aggregate counts by city for filteredData
+      const cityCounts = {};
+      filteredData.forEach(row => {
+        const city = row["City & Country"];
+        if (city) {
+          cityCounts[city] = (cityCounts[city] || 0) + 1;
+        }
+      });
+      // Prepare an array for d3-cloud (each object: {text, size})
+      const words = Object.keys(cityCounts).map(city => ({
+        text: city,
+        size: 10 + cityCounts[city] * 5  // Adjust multiplier as needed
+      }));
+      
+      // Remove any existing SVG
+      d3.select("#wordCloud").select("svg").remove();
+      
+      const width = document.getElementById("wordCloud").clientWidth;
+      const height = 300;
+      
+      const svg = d3.select("#wordCloud")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .append("g")
+        .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+      
+      const layout = d3.layout.cloud()
+        .size([width, height])
+        .words(words)
+        .padding(5)
+        .rotate(() => 0)
+        .fontSize(d => d.size)
+        .on("end", draw);
+      
+      layout.start();
+      
+      function draw(words) {
+        svg.selectAll("text")
+          .data(words)
+          .enter().append("text")
+          .style("font-size", d => d.size + "px")
+          .style("fill", () => "hsl(" + Math.random() * 360 + ", 70%, 50%)")
+          .attr("text-anchor", "middle")
+          .attr("transform", d => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")")
+          .text(d => d.text);
+      }
+    }
+
+    // Update Data Table (only non-date columns for anonymity)
     function updateTable() {
       const tbody = document.querySelector("#dataTable tbody");
       tbody.innerHTML = "";
@@ -315,9 +382,6 @@
         tr.innerHTML = `
           <td>${row["Venue/Promoter Name"] || ""}</td>
           <td>${row["City & Country"] || ""}</td>
-          <td>${row["Date of Performance"] || ""}</td>
-          <td>${row["Agreed Payment Date"] || ""}</td>
-          <td>${row["Actual Payment Date (Leave blank if not paid)"] || ""}</td>
           <td>${row["Payment Method"] || ""}</td>
           <td>${row["Were you paid on time?"] || ""}</td>
           <td>${row["If not, how late was the payment?"] || ""}</td>
