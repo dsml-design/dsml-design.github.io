@@ -185,6 +185,26 @@
     // Chart instances
     let paymentPieChart, paymentMethodBarChart, cityRankingBarChart;
     
+    /**
+     * Preprocess the raw data to normalize inputs and ensure required fields.
+     * This "poka yoke" step ensures that even if users enter data in varying formats,
+     * our aggregations work correctly.
+     */
+    function preprocessData(data) {
+      return data.map(row => {
+        // Normalize City & Country: trim and default to "Unknown" if missing
+        row["City & Country"] = row["City & Country"] ? row["City & Country"].trim() : "Unknown";
+        // Normalize "Were you paid on time?": lowercase and trim; default to "unknown"
+        row["Were you paid on time?"] = row["Were you paid on time?"] ? row["Were you paid on time?"].trim().toLowerCase() : "unknown";
+        // Normalize Payment Method: trim; default to "Other"
+        row["Payment Method"] = row["Payment Method"] ? row["Payment Method"].trim() : "Other";
+        // Normalize "If not, how late was the payment?": trim
+        row["If not, how late was the payment?"] = row["If not, how late was the payment?"] ? row["If not, how late was the payment?"].trim() : "";
+        // Optionally, add other preprocessing/validation steps here.
+        return row;
+      });
+    }
+    
     // Fetch CSV data using PapaParse
     function fetchData() {
       Papa.parse(csvUrl, {
@@ -192,6 +212,7 @@
         header: true,
         complete: function(results) {
           rawData = results.data.filter(row => Object.values(row).some(cell => cell !== ""));
+          rawData = preprocessData(rawData); // Preprocess to normalize inputs
           populateCityFilter();
           updateDashboard();
         },
@@ -229,8 +250,8 @@
       let onTime = 0, late = 0;
       filteredData.forEach(row => {
         const response = row["Were you paid on time?"];
-        if (response && response.trim().toLowerCase() === "yes") onTime++;
-        else if (response && response.trim().toLowerCase() === "no") late++;
+        if (response === "yes") onTime++;
+        else if (response === "no") late++;
       });
       const data = {
         labels: ["Paid on Time", "Not Paid on Time"],
@@ -312,7 +333,7 @@
             cityData[city] = { total: 0, onTime: 0 };
           }
           cityData[city].total++;
-          if (row["Were you paid on time?"] && row["Were you paid on time?"].trim().toLowerCase() === "yes") {
+          if (row["Were you paid on time?"] === "yes") {
             cityData[city].onTime++;
           }
         }
