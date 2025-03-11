@@ -3,14 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Artist Payment Dashboard - Advanced</title>
+  <title>Artist Payment Dashboard - Clarified Visuals</title>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- PapaParse -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-  <!-- D3.js and d3-cloud for Word Cloud -->
-  <script src="https://d3js.org/d3.v5.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-cloud/1.2.5/d3.layout.cloud.min.js"></script>
   <!-- Animate.css for basic animations -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <style>
@@ -69,29 +66,6 @@
         flex: 1 1 calc(45% - 30px);
       }
     }
-    .chart-full {
-      flex-basis: 100%;
-    }
-    .word-cloud-box {
-      background: #fff;
-      border: 1px solid #ddd;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      text-align: center;
-      margin-bottom: 30px;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: all 0.6s ease-out;
-    }
-    .word-cloud-box.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    #wordCloud {
-      width: 100%;
-      height: 300px;
-    }
     .table-container {
       opacity: 0;
       transform: translateY(20px);
@@ -144,20 +118,9 @@
       <h3>Payment Method Breakdown</h3>
       <canvas id="paymentMethodBarChart"></canvas>
     </div>
-    <!-- City Ranking Bar Chart -->
-    <div class="chart-box chart-full" id="boxCityRanking">
-      <h3>City Ranking (On-Time Payment %)</h3>
-      <canvas id="cityRankingBarChart"></canvas>
-    </div>
   </div>
   
-  <!-- Word Cloud Section -->
-  <div class="word-cloud-box" id="boxWordCloud">
-    <h3>City Report Volume Word Cloud</h3>
-    <div id="wordCloud"></div>
-  </div>
-  
-  <!-- Data Table (without dates) -->
+  <!-- Data Table (without dates for anonymity) -->
   <div class="table-container" id="boxTable">
     <h2>Detailed Report Data</h2>
     <table id="dataTable">
@@ -183,7 +146,7 @@
     let filteredData = [];
     
     // Chart instances
-    let paymentPieChart, paymentMethodBarChart, cityRankingBarChart;
+    let paymentPieChart, paymentMethodBarChart;
     
     /**
      * Preprocess the raw data to normalize inputs and ensure required fields.
@@ -200,7 +163,6 @@
         row["Payment Method"] = row["Payment Method"] ? row["Payment Method"].trim() : "Other";
         // Normalize "If not, how late was the payment?": trim
         row["If not, how late was the payment?"] = row["If not, how late was the payment?"] ? row["If not, how late was the payment?"].trim() : "";
-        // Optionally, add other preprocessing/validation steps here.
         return row;
       });
     }
@@ -240,8 +202,6 @@
       filteredData = selectedCity === "all" ? rawData : rawData.filter(row => row["City & Country"] === selectedCity);
       updatePieChart();
       updateBarChart();
-      updateCityRankingChart();
-      updateWordCloud();
       updateTable();
     }
     
@@ -323,112 +283,6 @@
       }
     }
     
-    // Update City Ranking Bar Chart (aggregated on-time % by city)
-    function updateCityRankingChart() {
-      const cityData = {};
-      filteredData.forEach(row => {
-        const city = row["City & Country"];
-        if (city) {
-          if (!cityData[city]) {
-            cityData[city] = { total: 0, onTime: 0 };
-          }
-          cityData[city].total++;
-          if (row["Were you paid on time?"] === "yes") {
-            cityData[city].onTime++;
-          }
-        }
-      });
-      const labels = [];
-      const percentages = [];
-      for (let city in cityData) {
-        labels.push(city);
-        const percent = (cityData[city].total ? (cityData[city].onTime / cityData[city].total) * 100 : 0).toFixed(2);
-        percentages.push(percent);
-      }
-      const data = {
-        labels: labels,
-        datasets: [{
-          label: "On-Time Payment (%)",
-          data: percentages,
-          backgroundColor: "#9c27b0"
-        }]
-      };
-      const ctx = document.getElementById("cityRankingBarChart").getContext("2d");
-      if (cityRankingBarChart) {
-        cityRankingBarChart.data = data;
-        cityRankingBarChart.update();
-      } else {
-        cityRankingBarChart = new Chart(ctx, {
-          type: "bar",
-          data: data,
-          options: {
-            indexAxis: "y",
-            responsive: true,
-            animation: { duration: 1000 },
-            plugins: {
-              legend: { display: false },
-              title: { display: true, text: "City Ranking (On-Time %)" }
-            },
-            scales: {
-              x: {
-                beginAtZero: true,
-                max: 100,
-                ticks: { callback: value => value + "%" }
-              }
-            }
-          }
-        });
-      }
-    }
-    
-    // Update Word Cloud (using d3-cloud)
-    function updateWordCloud() {
-      const cityCounts = {};
-      filteredData.forEach(row => {
-        const city = row["City & Country"];
-        if (city) {
-          cityCounts[city] = (cityCounts[city] || 0) + 1;
-        }
-      });
-      const words = Object.keys(cityCounts).map(city => ({
-        text: city,
-        size: 10 + cityCounts[city] * 5
-      }));
-      d3.select("#wordCloud").select("svg").remove();
-      const width = document.getElementById("wordCloud").clientWidth;
-      const height = 300;
-      const svg = d3.select("#wordCloud")
-        .append("svg")
-        .attr("width", width)
-        .attr("height", height)
-        .append("g")
-        .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
-      const layout = d3.layout.cloud()
-        .size([width, height])
-        .words(words)
-        .padding(5)
-        .rotate(() => 0)
-        .fontSize(d => d.size)
-        .on("end", draw);
-      layout.start();
-      function draw(words) {
-        svg.selectAll("text")
-          .data(words)
-          .enter().append("text")
-          .style("font-size", d => d.size + "px")
-          .style("fill", () => "hsl(" + Math.random() * 360 + ", 70%, 50%)")
-          .attr("text-anchor", "middle")
-          .attr("transform", d => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")")
-          .text(d => d.text)
-          .on("mouseover", function() {
-            d3.select(this).transition().duration(300).style("font-size", function(d) { return (d.size * 1.2) + "px"; });
-          })
-          .on("mouseout", function() {
-            d3.select(this).transition().duration(300).style("font-size", function(d) { return d.size + "px"; });
-          });
-      }
-    }
-    
     // Update Data Table (only non-date columns for anonymity)
     function updateTable() {
       const tbody = document.querySelector("#dataTable tbody");
@@ -451,7 +305,7 @@
     
     // Intersection Observer to trigger animations on scroll
     function observeElements() {
-      const elements = document.querySelectorAll(".chart-box, .word-cloud-box, .table-container");
+      const elements = document.querySelectorAll(".chart-box, .table-container, .filter-container");
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if(entry.isIntersecting) {
