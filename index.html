@@ -3,43 +3,63 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Artist Payment Dashboard</title>
-  <!-- Chart.js CDN -->
+  <title>Artist Payment Dashboard - Advanced</title>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- PapaParse CDN -->
+  <!-- PapaParse -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f9f9f9;
+      background-color: #f9f9f9;
+      color: #333;
+      margin: 20px;
     }
     header {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
     }
     h1 {
-      margin-bottom: 10px;
+      font-size: 2.5em;
     }
-    #filter-container {
-      margin-bottom: 20px;
+    .filter-container {
       text-align: center;
+      margin-bottom: 20px;
     }
-    #chart-container {
-      width: 80%;
-      margin: 0 auto;
+    .charts-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      gap: 30px;
+    }
+    .chart-box {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    .chart-box canvas {
+      max-width: 100%;
+      height: auto;
+    }
+    @media (min-width: 768px) {
+      .chart-box {
+        flex: 1 1 calc(45% - 30px);
+      }
+    }
+    .chart-full {
+      flex-basis: 100%;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 30px;
     }
-    table, th, td {
-      border: 1px solid #ddd;
-    }
     th, td {
-      padding: 8px;
+      border: 1px solid #ddd;
+      padding: 10px;
       text-align: left;
     }
     th {
@@ -50,22 +70,36 @@
 <body>
   <header>
     <h1>Artist Payment Dashboard</h1>
-    <p>Visualizing artist payment reports from venues and promoters</p>
+    <p>Explore payment reports and trends for venues and promoters</p>
   </header>
   
-  <div id="filter-container">
+  <div class="filter-container">
     <label for="cityFilter">Filter by City: </label>
     <select id="cityFilter">
-      <option value="all">All</option>
+      <option value="all">All Cities</option>
     </select>
   </div>
   
-  <div id="chart-container">
-    <canvas id="paymentChart"></canvas>
+  <div class="charts-container">
+    <!-- Payment Distribution Pie Chart -->
+    <div class="chart-box">
+      <h3>Payment Distribution</h3>
+      <canvas id="paymentPieChart"></canvas>
+    </div>
+    <!-- Payment Method Bar Chart -->
+    <div class="chart-box">
+      <h3>Payment Method Breakdown</h3>
+      <canvas id="paymentMethodBarChart"></canvas>
+    </div>
+    <!-- Monthly Trend Line Chart -->
+    <div class="chart-box chart-full">
+      <h3>Monthly On-Time Payment Trend</h3>
+      <canvas id="monthlyTrendLineChart"></canvas>
+    </div>
   </div>
   
-  <div id="table-container">
-    <h2>Report Details</h2>
+  <div class="table-container">
+    <h2>Detailed Report Data</h2>
     <table id="dataTable">
       <thead>
         <tr>
@@ -76,50 +110,46 @@
           <th>Actual Payment Date</th>
           <th>Payment Method</th>
           <th>Paid on Time?</th>
+          <th>If Late, How Late</th>
         </tr>
       </thead>
       <tbody>
-        <!-- Data Rows Will Appear Here -->
+        <!-- Data rows will be inserted dynamically -->
       </tbody>
     </table>
   </div>
   
   <script>
-    // Replace with your published Google Sheets CSV URL
+    // Replace with your published CSV URL from Google Sheets
     // Example: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3XXXXXXXXXXXX/pub?output=csv"
-    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPBLJHpqcD-XvAiW1wkXn9Rr8a_nOJWJ49EUd2mxtSSYDZ_Lau9nmJ5hAQZ-7_1fqiAuFntCNBnofb/pub?output=csv";
-
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPBLJHpqcD-XvAiW1wkXn9Rr8a_nOJWJ49EUd2mxtSSYDZ_Lau9nmJ5hAQZ-7_1fqiAuFntCNBnofb/pubhtml";
     let rawData = [];
     let filteredData = [];
 
-    // Function to fetch and parse CSV data
+    // Chart instances
+    let paymentPieChart, paymentMethodBarChart, monthlyTrendLineChart;
+
+    // Fetch CSV data using PapaParse
     function fetchData() {
       Papa.parse(csvUrl, {
         download: true,
         header: true,
         complete: function(results) {
-          rawData = results.data;
-          // Filter out any completely empty rows
-          rawData = rawData.filter(row => Object.values(row).some(cell => cell !== ""));
+          rawData = results.data.filter(row => Object.values(row).some(cell => cell !== ""));
           populateCityFilter();
           updateDashboard();
         },
         error: function(err) {
-          console.error("Error fetching data:", err);
+          console.error("Error fetching CSV data:", err);
         }
       });
     }
 
-    // Populate the city filter dropdown based on unique cities
+    // Populate City Filter dropdown
     function populateCityFilter() {
-      const citySet = new Set();
-      rawData.forEach(row => {
-        if(row["City & Country"]) {
-          citySet.add(row["City & Country"]);
-        }
-      });
       const cityFilter = document.getElementById("cityFilter");
-      citySet.forEach(city => {
+      const cities = new Set(rawData.map(row => row["City & Country"]).filter(Boolean));
+      cities.forEach(city => {
         const option = document.createElement("option");
         option.value = city;
         option.textContent = city;
@@ -127,57 +157,85 @@
       });
     }
 
-    // Update dashboard: chart and table based on selected filter
+    // Update dashboard data and charts based on filter
     function updateDashboard() {
       const selectedCity = document.getElementById("cityFilter").value;
-      if(selectedCity === "all") {
-        filteredData = rawData;
-      } else {
-        filteredData = rawData.filter(row => row["City & Country"] === selectedCity);
-      }
-      updateChart();
+      filteredData = selectedCity === "all" ? rawData : rawData.filter(row => row["City & Country"] === selectedCity);
+      updatePieChart();
+      updateBarChart();
+      updateLineChart();
       updateTable();
     }
 
-    // Create or update the Chart.js pie chart
-    let chartInstance;
-    function updateChart() {
-      let paidYes = 0, paidNo = 0;
+    // Update Payment Distribution Pie Chart
+    function updatePieChart() {
+      let onTime = 0, late = 0;
       filteredData.forEach(row => {
         const response = row["Were you paid on time?"];
-        if(response) {
-          if(response.trim().toLowerCase() === "yes") {
-            paidYes++;
-          } else if(response.trim().toLowerCase() === "no") {
-            paidNo++;
-          }
-        }
+        if (response && response.trim().toLowerCase() === "yes") onTime++;
+        else if (response && response.trim().toLowerCase() === "no") late++;
       });
-
-      const ctx = document.getElementById('paymentChart').getContext('2d');
-      const chartData = {
-        labels: ['Paid on Time', 'Not Paid on Time'],
+      const data = {
+        labels: ["Paid on Time", "Not Paid on Time"],
         datasets: [{
-          label: 'Payment Status',
-          data: [paidYes, paidNo],
-          backgroundColor: ['#4caf50', '#f44336']
+          data: [onTime, late],
+          backgroundColor: ["#4caf50", "#f44336"]
         }]
       };
-
-      if(chartInstance) {
-        chartInstance.data = chartData;
-        chartInstance.update();
+      const ctx = document.getElementById("paymentPieChart").getContext("2d");
+      if (paymentPieChart) {
+        paymentPieChart.data = data;
+        paymentPieChart.update();
       } else {
-        chartInstance = new Chart(ctx, {
-          type: 'pie',
-          data: chartData,
+        paymentPieChart = new Chart(ctx, {
+          type: "pie",
+          data: data,
           options: {
             responsive: true,
             plugins: {
-              legend: { position: 'bottom' },
-              title: {
-                display: true,
-                text: 'Payment Status Distribution'
+              legend: { position: "bottom" },
+              title: { display: true, text: "Payment Distribution" }
+            }
+          }
+        });
+      }
+    }
+
+    // Update Payment Method Bar Chart
+    function updateBarChart() {
+      const methodCounts = {};
+      filteredData.forEach(row => {
+        const method = row["Payment Method"] || "Other";
+        methodCounts[method] = (methodCounts[method] || 0) + 1;
+      });
+      const labels = Object.keys(methodCounts);
+      const counts = Object.values(methodCounts);
+      const data = {
+        labels: labels,
+        datasets: [{
+          label: "Count",
+          data: counts,
+          backgroundColor: "#2196f3"
+        }]
+      };
+      const ctx = document.getElementById("paymentMethodBarChart").getContext("2d");
+      if (paymentMethodBarChart) {
+        paymentMethodBarChart.data = data;
+        paymentMethodBarChart.update();
+      } else {
+        paymentMethodBarChart = new Chart(ctx, {
+          type: "bar",
+          data: data,
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              title: { display: true, text: "Payment Method Breakdown" }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
               }
             }
           }
@@ -185,7 +243,70 @@
       }
     }
 
-    // Update the data table with the filtered results
+    // Update Monthly Trend Line Chart
+    function updateLineChart() {
+      // Aggregate on-time payment percentages by month (using "Date of Performance")
+      const monthlyData = {};
+      filteredData.forEach(row => {
+        const dateStr = row["Date of Performance"];
+        if (dateStr) {
+          const dateObj = new Date(dateStr);
+          const month = dateObj.getFullYear() + "-" + (dateObj.getMonth() + 1).toString().padStart(2, "0");
+          if (!monthlyData[month]) monthlyData[month] = { total: 0, onTime: 0 };
+          monthlyData[month].total++;
+          const response = row["Were you paid on time?"];
+          if (response && response.trim().toLowerCase() === "yes") {
+            monthlyData[month].onTime++;
+          }
+        }
+      });
+      const sortedMonths = Object.keys(monthlyData).sort();
+      const labels = sortedMonths;
+      const percentages = sortedMonths.map(month => {
+        const data = monthlyData[month];
+        return data.total ? ((data.onTime / data.total) * 100).toFixed(2) : 0;
+      });
+      const data = {
+        labels: labels,
+        datasets: [{
+          label: "On-Time Payment (%)",
+          data: percentages,
+          borderColor: "#ff9800",
+          fill: false,
+          tension: 0.1
+        }]
+      };
+      const ctx = document.getElementById("monthlyTrendLineChart").getContext("2d");
+      if (monthlyTrendLineChart) {
+        monthlyTrendLineChart.data = data;
+        monthlyTrendLineChart.update();
+      } else {
+        monthlyTrendLineChart = new Chart(ctx, {
+          type: "line",
+          data: data,
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: "bottom" },
+              title: { display: true, text: "Monthly On-Time Payment Trend (%)" }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                  callback: function(value) {
+                    return value + "%";
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Update Data Table
     function updateTable() {
       const tbody = document.querySelector("#dataTable tbody");
       tbody.innerHTML = "";
@@ -199,12 +320,13 @@
           <td>${row["Actual Payment Date (Leave blank if not paid)"] || ""}</td>
           <td>${row["Payment Method"] || ""}</td>
           <td>${row["Were you paid on time?"] || ""}</td>
+          <td>${row["If not, how late was the payment?"] || ""}</td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    // Add event listener for the city filter dropdown
+    // Listen for changes in the city filter
     document.getElementById("cityFilter").addEventListener("change", updateDashboard);
 
     // Initial data fetch
