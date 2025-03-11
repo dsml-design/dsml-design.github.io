@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Artist Payment Dashboard</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- PapaParse CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    #filter-container {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    #chart-container {
+      width: 80%;
+      margin: 0 auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Artist Payment Dashboard</h1>
+    <p>Visualizing artist payment reports from venues and promoters</p>
+  </header>
+  
+  <div id="filter-container">
+    <label for="cityFilter">Filter by City: </label>
+    <select id="cityFilter">
+      <option value="all">All</option>
+    </select>
+  </div>
+  
+  <div id="chart-container">
+    <canvas id="paymentChart"></canvas>
+  </div>
+  
+  <div id="table-container">
+    <h2>Report Details</h2>
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>Venue/Promoter Name</th>
+          <th>City & Country</th>
+          <th>Date of Performance</th>
+          <th>Agreed Payment Date</th>
+          <th>Actual Payment Date</th>
+          <th>Payment Method</th>
+          <th>Paid on Time?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Data Rows Will Appear Here -->
+      </tbody>
+    </table>
+  </div>
+  
+  <script>
+    // Replace with your published Google Sheets CSV URL
+    // Example: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3XXXXXXXXXXXX/pub?output=csv"
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPBLJHpqcD-XvAiW1wkXn9Rr8a_nOJWJ49EUd2mxtSSYDZ_Lau9nmJ5hAQZ-7_1fqiAuFntCNBnofb/pub?output=csv";
+
+    let rawData = [];
+    let filteredData = [];
+
+    // Function to fetch and parse CSV data
+    function fetchData() {
+      Papa.parse(csvUrl, {
+        download: true,
+        header: true,
+        complete: function(results) {
+          rawData = results.data;
+          // Filter out any completely empty rows
+          rawData = rawData.filter(row => Object.values(row).some(cell => cell !== ""));
+          populateCityFilter();
+          updateDashboard();
+        },
+        error: function(err) {
+          console.error("Error fetching data:", err);
+        }
+      });
+    }
+
+    // Populate the city filter dropdown based on unique cities
+    function populateCityFilter() {
+      const citySet = new Set();
+      rawData.forEach(row => {
+        if(row["City & Country"]) {
+          citySet.add(row["City & Country"]);
+        }
+      });
+      const cityFilter = document.getElementById("cityFilter");
+      citySet.forEach(city => {
+        const option = document.createElement("option");
+        option.value = city;
+        option.textContent = city;
+        cityFilter.appendChild(option);
+      });
+    }
+
+    // Update dashboard: chart and table based on selected filter
+    function updateDashboard() {
+      const selectedCity = document.getElementById("cityFilter").value;
+      if(selectedCity === "all") {
+        filteredData = rawData;
+      } else {
+        filteredData = rawData.filter(row => row["City & Country"] === selectedCity);
+      }
+      updateChart();
+      updateTable();
+    }
+
+    // Create or update the Chart.js pie chart
+    let chartInstance;
+    function updateChart() {
+      let paidYes = 0, paidNo = 0;
+      filteredData.forEach(row => {
+        const response = row["Were you paid on time?"];
+        if(response) {
+          if(response.trim().toLowerCase() === "yes") {
+            paidYes++;
+          } else if(response.trim().toLowerCase() === "no") {
+            paidNo++;
+          }
+        }
+      });
+
+      const ctx = document.getElementById('paymentChart').getContext('2d');
+      const chartData = {
+        labels: ['Paid on Time', 'Not Paid on Time'],
+        datasets: [{
+          label: 'Payment Status',
+          data: [paidYes, paidNo],
+          backgroundColor: ['#4caf50', '#f44336']
+        }]
+      };
+
+      if(chartInstance) {
+        chartInstance.data = chartData;
+        chartInstance.update();
+      } else {
+        chartInstance = new Chart(ctx, {
+          type: 'pie',
+          data: chartData,
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              title: {
+                display: true,
+                text: 'Payment Status Distribution'
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Update the data table with the filtered results
+    function updateTable() {
+      const tbody = document.querySelector("#dataTable tbody");
+      tbody.innerHTML = "";
+      filteredData.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row["Venue/Promoter Name"] || ""}</td>
+          <td>${row["City & Country"] || ""}</td>
+          <td>${row["Date of Performance"] || ""}</td>
+          <td>${row["Agreed Payment Date"] || ""}</td>
+          <td>${row["Actual Payment Date (Leave blank if not paid)"] || ""}</td>
+          <td>${row["Payment Method"] || ""}</td>
+          <td>${row["Were you paid on time?"] || ""}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Add event listener for the city filter dropdown
+    document.getElementById("cityFilter").addEventListener("change", updateDashboard);
+
+    // Initial data fetch
+    fetchData();
+  </script>
+</body>
+</html>
