@@ -11,12 +11,20 @@
   <!-- D3.js and d3-cloud for Word Cloud -->
   <script src="https://d3js.org/d3.v5.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-cloud/1.2.5/d3.layout.cloud.min.js"></script>
+  <!-- Animate.css for basic animations -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <style>
+    /* Page fade-in */
     body {
       font-family: Arial, sans-serif;
       background-color: #f9f9f9;
       color: #333;
       margin: 20px;
+      opacity: 0;
+      animation: fadeInPage 1s forwards;
+    }
+    @keyframes fadeInPage {
+      to { opacity: 1; }
     }
     header {
       text-align: center;
@@ -28,6 +36,8 @@
     .filter-container {
       text-align: center;
       margin-bottom: 20px;
+      opacity: 0;
+      animation: fadeInUp 1s forwards;
     }
     .charts-container {
       display: flex;
@@ -42,6 +52,13 @@
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       margin-bottom: 30px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.6s ease-out;
+    }
+    .chart-box.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
     .chart-box canvas {
       max-width: 100%;
@@ -63,10 +80,26 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       text-align: center;
       margin-bottom: 30px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.6s ease-out;
+    }
+    .word-cloud-box.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
     #wordCloud {
       width: 100%;
       height: 300px;
+    }
+    .table-container {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.6s ease-out;
+    }
+    .table-container.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
     table {
       width: 100%;
@@ -81,10 +114,14 @@
     th {
       background: #f2f2f2;
     }
+    table tr:hover {
+      background-color: #f1f1f1;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <header>
+  <header class="animate__animated animate__fadeInDown">
     <h1>Artist Payment Dashboard</h1>
     <p>Explore aggregated payment reports and trends – protecting anonymity</p>
   </header>
@@ -98,30 +135,30 @@
   
   <div class="charts-container">
     <!-- Payment Distribution Pie Chart -->
-    <div class="chart-box">
+    <div class="chart-box" id="boxPieChart">
       <h3>Payment Distribution</h3>
       <canvas id="paymentPieChart"></canvas>
     </div>
     <!-- Payment Method Bar Chart -->
-    <div class="chart-box">
+    <div class="chart-box" id="boxBarChart">
       <h3>Payment Method Breakdown</h3>
       <canvas id="paymentMethodBarChart"></canvas>
     </div>
     <!-- City Ranking Bar Chart -->
-    <div class="chart-box chart-full">
+    <div class="chart-box chart-full" id="boxCityRanking">
       <h3>City Ranking (On-Time Payment %)</h3>
       <canvas id="cityRankingBarChart"></canvas>
     </div>
   </div>
   
   <!-- Word Cloud Section -->
-  <div class="word-cloud-box">
+  <div class="word-cloud-box" id="boxWordCloud">
     <h3>City Report Volume Word Cloud</h3>
     <div id="wordCloud"></div>
   </div>
   
   <!-- Data Table (without dates) -->
-  <div class="table-container">
+  <div class="table-container" id="boxTable">
     <h2>Detailed Report Data</h2>
     <table id="dataTable">
       <thead>
@@ -140,15 +177,14 @@
   </div>
   
   <script>
-    // Replace with your published CSV URL from Google Sheets (in CSV format)
-    // Example: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3XXXXXXXXXXXX/pub?output=csv"
+    // Replace with your published CSV URL from Google Sheets (CSV format)
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPBLJHpqcD-XvAiW1wkXn9Rr8a_nOJWJ49EUd2mxtSSYDZ_Lau9nmJ5hAQZ-7_1fqiAuFntCNBnofb/pub?output=csv";
     let rawData = [];
     let filteredData = [];
-
+    
     // Chart instances
     let paymentPieChart, paymentMethodBarChart, cityRankingBarChart;
-
+    
     // Fetch CSV data using PapaParse
     function fetchData() {
       Papa.parse(csvUrl, {
@@ -164,7 +200,7 @@
         }
       });
     }
-
+    
     // Populate City Filter dropdown
     function populateCityFilter() {
       const cityFilter = document.getElementById("cityFilter");
@@ -176,7 +212,7 @@
         cityFilter.appendChild(option);
       });
     }
-
+    
     // Update dashboard data and charts based on filter
     function updateDashboard() {
       const selectedCity = document.getElementById("cityFilter").value;
@@ -187,7 +223,7 @@
       updateWordCloud();
       updateTable();
     }
-
+    
     // Update Payment Distribution Pie Chart
     function updatePieChart() {
       let onTime = 0, late = 0;
@@ -213,6 +249,7 @@
           data: data,
           options: {
             responsive: true,
+            animation: { animateRotate: true, animateScale: true },
             plugins: {
               legend: { position: "bottom" },
               title: { display: true, text: "Payment Distribution" }
@@ -221,7 +258,7 @@
         });
       }
     }
-
+    
     // Update Payment Method Bar Chart
     function updateBarChart() {
       const methodCounts = {};
@@ -249,6 +286,7 @@
           data: data,
           options: {
             responsive: true,
+            animation: { duration: 1000 },
             plugins: {
               legend: { display: false },
               title: { display: true, text: "Payment Method Breakdown" }
@@ -263,7 +301,7 @@
         });
       }
     }
-
+    
     // Update City Ranking Bar Chart (aggregated on-time % by city)
     function updateCityRankingChart() {
       const cityData = {};
@@ -279,7 +317,6 @@
           }
         }
       });
-      // Prepare arrays of labels and on-time percentage (if any city exists)
       const labels = [];
       const percentages = [];
       for (let city in cityData) {
@@ -306,6 +343,7 @@
           options: {
             indexAxis: "y",
             responsive: true,
+            animation: { duration: 1000 },
             plugins: {
               legend: { display: false },
               title: { display: true, text: "City Ranking (On-Time %)" }
@@ -321,10 +359,9 @@
         });
       }
     }
-
+    
     // Update Word Cloud (using d3-cloud)
     function updateWordCloud() {
-      // Aggregate counts by city for filteredData
       const cityCounts = {};
       filteredData.forEach(row => {
         const city = row["City & Country"];
@@ -332,25 +369,19 @@
           cityCounts[city] = (cityCounts[city] || 0) + 1;
         }
       });
-      // Prepare an array for d3-cloud (each object: {text, size})
       const words = Object.keys(cityCounts).map(city => ({
         text: city,
-        size: 10 + cityCounts[city] * 5  // Adjust multiplier as needed
+        size: 10 + cityCounts[city] * 5
       }));
-      
-      // Remove any existing SVG
       d3.select("#wordCloud").select("svg").remove();
-      
       const width = document.getElementById("wordCloud").clientWidth;
       const height = 300;
-      
       const svg = d3.select("#wordCloud")
         .append("svg")
         .attr("width", width)
         .attr("height", height)
         .append("g")
         .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
-      
       const layout = d3.layout.cloud()
         .size([width, height])
         .words(words)
@@ -358,9 +389,7 @@
         .rotate(() => 0)
         .fontSize(d => d.size)
         .on("end", draw);
-      
       layout.start();
-      
       function draw(words) {
         svg.selectAll("text")
           .data(words)
@@ -369,10 +398,16 @@
           .style("fill", () => "hsl(" + Math.random() * 360 + ", 70%, 50%)")
           .attr("text-anchor", "middle")
           .attr("transform", d => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")")
-          .text(d => d.text);
+          .text(d => d.text)
+          .on("mouseover", function() {
+            d3.select(this).transition().duration(300).style("font-size", function(d) { return (d.size * 1.2) + "px"; });
+          })
+          .on("mouseout", function() {
+            d3.select(this).transition().duration(300).style("font-size", function(d) { return d.size + "px"; });
+          });
       }
     }
-
+    
     // Update Data Table (only non-date columns for anonymity)
     function updateTable() {
       const tbody = document.querySelector("#dataTable tbody");
@@ -389,12 +424,27 @@
         tbody.appendChild(tr);
       });
     }
-
+    
     // Listen for changes in the city filter
     document.getElementById("cityFilter").addEventListener("change", updateDashboard);
-
-    // Initial data fetch
+    
+    // Intersection Observer to trigger animations on scroll
+    function observeElements() {
+      const elements = document.querySelectorAll(".chart-box, .word-cloud-box, .table-container");
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if(entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.2 });
+      elements.forEach(el => observer.observe(el));
+    }
+    
+    // Initial data fetch and observer setup
     fetchData();
+    window.onload = observeElements;
   </script>
 </body>
 </html>
