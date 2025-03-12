@@ -38,11 +38,7 @@
     }
     @keyframes fadeInPage { to { opacity: 1; } }
     
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
     
     header {
       text-align: center;
@@ -77,7 +73,6 @@
       animation: fadeInUp 1s forwards;
     }
     .filter-group { display: flex; align-items: center; gap: 10px; }
-    
     select, input, button {
       padding: 8px 12px;
       border: 1px solid var(--border-color);
@@ -114,12 +109,8 @@
     .stat-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1em; }
     .stat-card .value { font-size: 2em; font-weight: bold; margin: 10px 0; }
     
-    /* Only one chart: Payment Timeliness */
-    .charts-container {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 30px;
-    }
+    /* Only one chart: Payment Timeliness Pie Chart */
+    .charts-container { display: flex; justify-content: center; margin-bottom: 30px; }
     .chart-box {
       background: white;
       border: 1px solid var(--border-color);
@@ -209,7 +200,7 @@
       box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
     }
     
-    /* Intersection Observer elements (fade in) */
+    /* Intersection Observer fade-in */
     .chart-box, .table-container, .filter-container { opacity: 0; transform: translateY(20px); transition: all 0.6s ease-out; }
     .chart-box.visible, .table-container.visible, .filter-container.visible { opacity: 1; transform: translateY(0); }
   </style>
@@ -240,12 +231,8 @@
         </select>
       </div>
       <div class="filter-group">
-        <button class="primary" id="applyFilters">
-          <i class="fas fa-filter"></i> Apply Filters
-        </button>
-        <button class="primary" id="resetFilters">
-          <i class="fas fa-undo"></i> Reset
-        </button>
+        <button class="primary" id="applyFilters"><i class="fas fa-filter"></i> Apply Filters</button>
+        <button class="primary" id="resetFilters"><i class="fas fa-undo"></i> Reset</button>
       </div>
     </div>
 
@@ -269,7 +256,7 @@
       </div>
     </div>
 
-    <!-- Chart: Only Payment Timeliness Pie Chart remains -->
+    <!-- Chart: Payment Timeliness Pie Chart -->
     <div class="charts-container">
       <div class="chart-box" id="boxPieChart">
         <h3>Payment Timeliness</h3>
@@ -282,12 +269,8 @@
       <div class="subheader">
         <h2>Detailed Report Data</h2>
         <div>
-          <button class="primary" id="downloadData">
-            <i class="fas fa-download"></i> Export Data
-          </button>
-          <button class="primary" id="openSubmitForm">
-            <i class="fas fa-plus"></i> Submit Report
-          </button>
+          <button class="primary" id="downloadData"><i class="fas fa-download"></i> Export Data</button>
+          <button class="primary" id="openSubmitForm"><i class="fas fa-plus"></i> Submit Report</button>
         </div>
       </div>
       
@@ -455,7 +438,6 @@
     }
     
     function updateStats() {
-      // For simplicity, we set the stat cards to fixed values.
       document.getElementById("totalReports").textContent = "1";
       document.getElementById("onTimeRate").textContent = "0%";
       document.getElementById("verifiedRate").textContent = "0";
@@ -479,7 +461,7 @@
       }
       
       document.getElementById("redirectReport").addEventListener("click", () => {
-        window.location.href = "https://forms.gle/dSDsF9kBbUVdzkZe6"; // Official report form URL
+        window.location.href = "https://forms.gle/5j1ugz3VbrYZoH3X6"; // Official report form URL
       });
       
       // Dispute Modal (Redirect)
@@ -497,7 +479,7 @@
       });
       
       document.getElementById("redirectDispute").addEventListener("click", () => {
-        window.location.href = "https://script.google.com/macros/s/YOUR_DISPUTE_FORM_WEBAPP_URL/exec"; // Replace with your dispute form URL
+        window.location.href = "https://forms.gle/Ck678YwVTCN34X5J8"; // Replace with your dispute form URL
       });
     }
     
