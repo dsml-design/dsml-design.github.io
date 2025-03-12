@@ -1051,7 +1051,6 @@
       .then(result => {
         if (result.result === "success") {
           alert("Your report has been submitted successfully. Thank you!");
-          // Optionally refresh data:
           fetchData();
         } else {
           alert("Error submitting report: " + result.error);
@@ -1074,7 +1073,6 @@
       .then(result => {
         if (result.result === "success") {
           alert("Your dispute has been submitted successfully.");
-          // Optionally refresh data:
           fetchData();
         } else {
           alert("Error submitting dispute: " + result.error);
@@ -1086,155 +1084,155 @@
       });
     }
     
-    // Quick Report Modal handling
-    const submitModal = document.getElementById("submitModal");
-    const openSubmitFormBtn = document.getElementById("openSubmitForm");
-    const closeSubmitModalBtn = document.getElementById("closeSubmitModal");
-    const cancelSubmissionBtn = document.getElementById("cancelSubmission");
-    
-    openSubmitFormBtn.addEventListener("click", () => {
-      submitModal.style.display = "flex";
-    });
-    
-    if(closeSubmitModalBtn) {
-      closeSubmitModalBtn.addEventListener("click", () => {
+    // Modal initialization
+    function initModals() {
+      // Quick Report Modal
+      const submitModal = document.getElementById("submitModal");
+      const openSubmitFormBtn = document.getElementById("openSubmitForm");
+      const closeSubmitModalBtn = document.getElementById("closeSubmitModal");
+      const cancelSubmissionBtn = document.getElementById("cancelSubmission");
+      
+      openSubmitFormBtn.addEventListener("click", () => {
+        submitModal.style.display = "flex";
+      });
+      
+      if (closeSubmitModalBtn) {
+        closeSubmitModalBtn.addEventListener("click", () => {
+          submitModal.style.display = "none";
+        });
+      }
+      
+      cancelSubmissionBtn.addEventListener("click", () => {
         submitModal.style.display = "none";
+      });
+      
+      document.getElementById("quickReportForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const reportData = {
+          venueName: document.getElementById("venueName").value,
+          venueLocation: document.getElementById("venueLocation").value,
+          paymentMethod: document.getElementById("paymentMethod").value,
+          paidOnTime: document.getElementById("paidOnTime").value,
+          howLate: document.getElementById("howLate").value,
+          eventType: document.getElementById("eventType").value,
+          additionalInfo: document.getElementById("additionalInfo").value
+        };
+        sendQuickReportData(reportData);
+        submitModal.style.display = "none";
+        document.getElementById("quickReportForm").reset();
+      });
+      
+      document.getElementById("paidOnTime").addEventListener("change", function() {
+        if (this.value === "no") {
+          document.getElementById("latePaymentContainer").style.display = "block";
+        } else {
+          document.getElementById("latePaymentContainer").style.display = "none";
+        }
+      });
+      
+      // Dispute Modal
+      const disputeModal = document.getElementById("disputeModal");
+      const closeDisputeModalBtn = document.getElementById("closeDisputeModal");
+      const cancelDisputeBtn = document.getElementById("cancelDispute");
+      const cancelArtistDisputeBtn = document.getElementById("cancelArtistDispute");
+      
+      document.addEventListener("click", function(e) {
+        if (e.target && e.target.classList.contains("open-dispute")) {
+          disputeModal.style.display = "flex";
+          // Optionally, populate hidden fields with related report data.
+        }
+      });
+      
+      closeDisputeModalBtn.addEventListener("click", () => {
+        disputeModal.style.display = "none";
+      });
+      cancelDisputeBtn.addEventListener("click", () => {
+        disputeModal.style.display = "none";
+      });
+      cancelArtistDisputeBtn.addEventListener("click", () => {
+        disputeModal.style.display = "none";
+      });
+      
+      // Tab switching for dispute modal
+      const tabs = document.querySelectorAll(".tab");
+      tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+          tabs.forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+          const target = tab.getAttribute("data-tab");
+          document.querySelectorAll(".tab-content").forEach(content => {
+            content.classList.remove("active");
+            if(content.id === target) content.classList.add("active");
+          });
+        });
+      });
+      
+      document.getElementById("venueDisputeForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const disputeData = {
+          disputeType: "venue",
+          venueName: document.getElementById("disputeVenueName").value,
+          contactPerson: document.getElementById("contactPerson").value,
+          contactEmail: document.getElementById("contactEmail").value,
+          disputeReason: document.getElementById("disputeReason").value,
+          disputeEvidence: document.getElementById("disputeEvidence").value
+        };
+        sendDisputeData(disputeData);
+        disputeModal.style.display = "none";
+        document.getElementById("venueDisputeForm").reset();
+      });
+      
+      document.getElementById("artistDisputeForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const disputeData = {
+          disputeType: "artist",
+          artistName: document.getElementById("artistName").value,
+          artistEmail: document.getElementById("artistEmail").value,
+          artistDisputeReason: document.getElementById("artistDisputeReason").value,
+          artistDisputeExplanation: document.getElementById("artistDisputeExplanation").value
+        };
+        sendDisputeData(disputeData);
+        disputeModal.style.display = "none";
+        document.getElementById("artistDisputeForm").reset();
       });
     }
     
-    cancelSubmissionBtn.addEventListener("click", () => {
-      submitModal.style.display = "none";
-    });
-    
-    document.getElementById("quickReportForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      // Gather form data for quick report submission
-      const reportData = {
-        venueName: document.getElementById("venueName").value,
-        venueLocation: document.getElementById("venueLocation").value,
-        paymentMethod: document.getElementById("paymentMethod").value,
-        paidOnTime: document.getElementById("paidOnTime").value,
-        howLate: document.getElementById("howLate").value,
-        eventType: document.getElementById("eventType").value,
-        additionalInfo: document.getElementById("additionalInfo").value
-      };
-      sendQuickReportData(reportData);
-      submitModal.style.display = "none";
-      // Optionally, reset the form here.
-      document.getElementById("quickReportForm").reset();
-    });
-    
-    // Show/hide late payment container based on "paidOnTime" value
-    document.getElementById("paidOnTime").addEventListener("change", function() {
-      if (this.value === "no") {
-        document.getElementById("latePaymentContainer").style.display = "block";
-      } else {
-        document.getElementById("latePaymentContainer").style.display = "none";
-      }
-    });
-    
-    // Dispute Modal handling
-    const disputeModal = document.getElementById("disputeModal");
-    const closeDisputeModalBtn = document.getElementById("closeDisputeModal");
-    const cancelDisputeBtn = document.getElementById("cancelDispute");
-    const cancelArtistDisputeBtn = document.getElementById("cancelArtistDispute");
-    
-    // Open dispute modal when clicking any "Dispute" button in the table
-    document.addEventListener("click", function(e) {
-      if (e.target && e.target.classList.contains("open-dispute")) {
-        disputeModal.style.display = "flex";
-        // Optionally, populate hidden fields with related report data.
-      }
-    });
-    
-    closeDisputeModalBtn.addEventListener("click", () => {
-      disputeModal.style.display = "none";
-    });
-    cancelDisputeBtn.addEventListener("click", () => {
-      disputeModal.style.display = "none";
-    });
-    cancelArtistDisputeBtn.addEventListener("click", () => {
-      disputeModal.style.display = "none";
-    });
-    
-    // Tab switching for dispute modal
-    const tabs = document.querySelectorAll(".tab");
-    tabs.forEach(tab => {
-      tab.addEventListener("click", () => {
-        tabs.forEach(t => t.classList.remove("active"));
-        tab.classList.add("active");
-        const target = tab.getAttribute("data-tab");
-        document.querySelectorAll(".tab-content").forEach(content => {
-          content.classList.remove("active");
-          if(content.id === target) content.classList.add("active");
-        });
-      });
-    });
-    
-    // Venue Dispute Form submission
-    document.getElementById("venueDisputeForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const disputeData = {
-        disputeType: "venue",
-        venueName: document.getElementById("disputeVenueName").value,
-        contactPerson: document.getElementById("contactPerson").value,
-        contactEmail: document.getElementById("contactEmail").value,
-        disputeReason: document.getElementById("disputeReason").value,
-        disputeEvidence: document.getElementById("disputeEvidence").value
-      };
-      sendDisputeData(disputeData);
-      disputeModal.style.display = "none";
-      document.getElementById("venueDisputeForm").reset();
-    });
-    
-    // Artist Dispute Form submission
-    document.getElementById("artistDisputeForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const disputeData = {
-        disputeType: "artist",
-        artistName: document.getElementById("artistName").value,
-        artistEmail: document.getElementById("artistEmail").value,
-        artistDisputeReason: document.getElementById("artistDisputeReason").value,
-        artistDisputeExplanation: document.getElementById("artistDisputeExplanation").value
-      };
-      sendDisputeData(disputeData);
-      disputeModal.style.display = "none";
-      document.getElementById("artistDisputeForm").reset();
-    });
-    
     // Filter Buttons
-    document.getElementById("applyFilters").addEventListener("click", updateDashboard);
-    
-    document.getElementById("resetFilters").addEventListener("click", () => {
-      document.getElementById("cityFilter").value = "all";
-      document.getElementById("timeFilter").value = "all";
-      document.getElementById("venueTypeFilter").value = "all";
-      updateDashboard();
-    });
-    
-    // Download Data (simple CSV export of the filtered data)
-    document.getElementById("downloadData").addEventListener("click", () => {
-      let csvContent = "data:text/csv;charset=utf-8,";
-      const headers = ["Venue/Promoter Name", "City & Country", "Payment Method", "Paid on Time?", "If Late, How Late"];
-      csvContent += headers.join(",") + "\n";
-      filteredData.forEach(row => {
-        const dataRow = [
-          row["Venue/Promoter Name"] || "",
-          row["City & Country"] || "",
-          row["Payment Method"] || "",
-          row["Were you paid on time?"] || "",
-          row["If not, how late was the payment?"] || ""
-        ];
-        csvContent += dataRow.join(",") + "\n";
+    function initFilters() {
+      document.getElementById("applyFilters").addEventListener("click", updateDashboard);
+      document.getElementById("resetFilters").addEventListener("click", () => {
+        document.getElementById("cityFilter").value = "all";
+        document.getElementById("timeFilter").value = "all";
+        document.getElementById("venueTypeFilter").value = "all";
+        updateDashboard();
       });
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "artist_payment_reports.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
+    }
+    
+    // Download Data (CSV export)
+    function initDownload() {
+      document.getElementById("downloadData").addEventListener("click", () => {
+        let csvContent = "data:text/csv;charset=utf-8,";
+        const headers = ["Venue/Promoter Name", "City & Country", "Payment Method", "Paid on Time?", "If Late, How Late"];
+        csvContent += headers.join(",") + "\n";
+        filteredData.forEach(row => {
+          const dataRow = [
+            row["Venue/Promoter Name"] || "",
+            row["City & Country"] || "",
+            row["Payment Method"] || "",
+            row["Were you paid on time?"] || "",
+            row["If not, how late was the payment?"] || ""
+          ];
+          csvContent += dataRow.join(",") + "\n";
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "artist_payment_reports.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+    }
     
     /* --- Intersection Observer for Motion Effects --- */
     function observeElements() {
@@ -1250,9 +1248,16 @@
       elements.forEach(el => observer.observe(el));
     }
     
-    // Initial data fetch and observer setup
-    fetchData();
-    window.onload = observeElements;
+    // Initial data fetch and initialization
+    function init() {
+      fetchData();
+      initModals();
+      initFilters();
+      initDownload();
+      observeElements();
+    }
+    
+    window.onload = init;
   </script>
 </body>
 </html>
