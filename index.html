@@ -153,6 +153,14 @@
     tbody tr { transition: background-color var(--transition-speed); }
     tbody tr:hover { background-color: #f1f1f1; cursor: pointer; }
     
+    /* Badge styling based on Verification Status */
+    .badge-success { background-color: var(--success-color); color: white; }
+    .badge-warning { background-color: var(--warning-color); color: white; }
+    .badge-danger { background-color: var(--danger-color); color: white; }
+    
+    /* Small button for actions */
+    .btn-sm { padding: 4px 8px; font-size: 0.8em; }
+    
     /* Modals (Redirect only) */
     .modal {
       display: none;
@@ -209,7 +217,7 @@
   <header class="animate__animated animate__fadeInDown">
     <div class="container">
       <h1>Artist Payment Dashboard</h1>
-      <p>Explore aggregated payment reports and trends – protecting anonymity while promoting fair practices</p>
+      <p>Explore aggregated payment reports while protecting anonymity.</p>
     </div>
   </header>
 
@@ -236,11 +244,11 @@
       </div>
     </div>
 
-    <!-- Stat Cards -->
+    <!-- Stat Cards (Dynamically Calculated) -->
     <div class="stats-grid">
       <div class="stat-card animate__animated animate__fadeIn">
         <h3>Total Reports</h3>
-        <div class="value" id="totalReports">1</div>
+        <div class="value" id="totalReports">0</div>
       </div>
       <div class="stat-card animate__animated animate__fadeIn" style="animation-delay: 0.1s">
         <h3>On-Time Payment Rate</h3>
@@ -325,22 +333,27 @@
   </footer>
 
   <script>
-    /* --- Data Handling & Visualization --- */
+    // CSV URL from your newly published Artist Payment Responses spreadsheet
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTCxiwvO-yVXux43OupB96fr14n5B98t8cZs8Kkg1ThS-rTvtA5tCvPAERCir_5D6wcg0NPPBcv3Q0x/pub?output=csv";
     let rawData = [];
     let filteredData = [];
     let paymentPieChart;
     
+    // Preprocess the data (trim fields)
     function preprocessData(data) {
       return data.map(row => {
         row["City & Country"] = row["City & Country"] ? row["City & Country"].trim() : "Unknown";
         row["Were you paid on time?"] = row["Were you paid on time?"] ? row["Were you paid on time?"].trim().toLowerCase() : "unknown";
         row["Payment Method"] = row["Payment Method"] ? row["Payment Method"].trim() : "Other";
         row["If not, how late was the payment?"] = row["If not, how late was the payment?"] ? row["If not, how late was the payment?"].trim() : "";
+        // Expect the new columns "Status" and "Verification Score" to be present
+        row["Status"] = row["Status"] ? row["Status"].trim() : "Pending";
+        row["Verification Score"] = row["Verification Score"] ? row["Verification Score"].trim() : "";
         return row;
       });
     }
     
+    // Fetch data from the CSV URL using PapaParse
     function fetchData() {
       Papa.parse(csvUrl, {
         download: true,
@@ -358,6 +371,7 @@
       });
     }
     
+    // Populate location filter dropdown
     function populateCityFilter() {
       const cityFilter = document.getElementById("cityFilter");
       const cities = new Set(rawData.map(row => row["City & Country"]).filter(Boolean));
@@ -369,6 +383,7 @@
       });
     }
     
+    // Update dashboard: filter data and update charts & table
     function updateDashboard() {
       const selectedCity = document.getElementById("cityFilter").value;
       filteredData = selectedCity === "all" ? rawData : rawData.filter(row => row["City & Country"] === selectedCity);
@@ -376,6 +391,7 @@
       updateTable();
     }
     
+    // Update the Payment Timeliness pie chart
     function updatePieChart() {
       let onTime = 0, late = 0;
       filteredData.forEach(row => {
@@ -410,6 +426,7 @@
       }
     }
     
+    // Update the data table
     function updateTable() {
       const tbody = document.querySelector("#dataTable tbody");
       tbody.innerHTML = "";
@@ -420,15 +437,19 @@
         return;
       }
       filteredData.forEach(row => {
+        let status = row["Status"];
+        let badgeClass = "badge-warning";
+        if (status.toLowerCase() === "verified") badgeClass = "badge-success";
+        else if (status.toLowerCase() === "disputed") badgeClass = "badge-danger";
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td><span class="badge badge-success">Verified</span></td>
+          <td><span class="badge ${badgeClass}">${status}</span></td>
           <td>${row["Venue/Promoter Name"] || ""}</td>
           <td>${row["City & Country"] || ""}</td>
           <td>${row["Payment Method"] || ""}</td>
           <td>${row["Were you paid on time?"] || ""}</td>
           <td>${row["If not, how late was the payment?"] || ""}</td>
-          <td>85%</td>
+          <td>${row["Verification Score"] || ""}</td>
           <td>
             <button class="btn btn-secondary btn-sm open-dispute">Dispute</button>
           </td>
@@ -437,11 +458,18 @@
       });
     }
     
+    // Update stat cards dynamically from rawData
     function updateStats() {
-      document.getElementById("totalReports").textContent = "1";
-      document.getElementById("onTimeRate").textContent = "0%";
-      document.getElementById("verifiedRate").textContent = "0";
-      document.getElementById("disputeRate").textContent = "0";
+      const totalReports = rawData.length;
+      const onTimeCount = rawData.filter(row => row["Were you paid on time?"].toLowerCase() === "yes").length;
+      const onTimeRate = totalReports ? ((onTimeCount / totalReports) * 100).toFixed(0) + "%" : "0%";
+      const verifiedCount = rawData.filter(row => row["Status"].toLowerCase() === "verified").length;
+      const disputedCount = rawData.filter(row => row["Status"].toLowerCase() === "disputed").length;
+      
+      document.getElementById("totalReports").textContent = totalReports;
+      document.getElementById("onTimeRate").textContent = onTimeRate;
+      document.getElementById("verifiedRate").textContent = verifiedCount;
+      document.getElementById("disputeRate").textContent = disputedCount;
     }
     
     /* --- Modal & Redirect Handling --- */
@@ -450,7 +478,6 @@
       const submitModal = document.getElementById("submitModal");
       const openSubmitFormBtn = document.getElementById("openSubmitForm");
       const closeSubmitModalBtn = document.getElementById("closeSubmitModal");
-      
       openSubmitFormBtn.addEventListener("click", () => {
         submitModal.style.display = "flex";
       });
@@ -459,7 +486,6 @@
           submitModal.style.display = "none";
         });
       }
-      
       document.getElementById("redirectReport").addEventListener("click", () => {
         window.location.href = "https://docs.google.com/spreadsheets/d/1F7gM1QzNmO7pF0DGUpmnOKVj2Uf9NHqC0Geg3ztMSg4/edit?gid=1228099413#gid=1228099413"; // Official report form URL
       });
@@ -467,19 +493,16 @@
       // Dispute Modal (Redirect)
       const disputeModal = document.getElementById("disputeModal");
       const closeDisputeModalBtn = document.getElementById("closeDisputeModal");
-      
       document.addEventListener("click", function(e) {
         if (e.target && e.target.classList.contains("open-dispute")) {
           disputeModal.style.display = "flex";
         }
       });
-      
       closeDisputeModalBtn.addEventListener("click", () => {
         disputeModal.style.display = "none";
       });
-      
       document.getElementById("redirectDispute").addEventListener("click", () => {
-        window.location.href = "https://forms.gle/Ck678YwVTCN34X5J8"; // Replace with your dispute form URL
+        window.location.href = "https://forms.gle/Ck678YwVTCN34X5J8"; // Official dispute form URL
       });
     }
     
@@ -495,7 +518,7 @@
     function initDownload() {
       document.getElementById("downloadData").addEventListener("click", () => {
         let csvContent = "data:text/csv;charset=utf-8,";
-        const headers = ["Venue/Promoter Name", "City & Country", "Payment Method", "Paid on Time?", "If Late, How Late"];
+        const headers = ["Venue/Promoter Name", "City & Country", "Payment Method", "Paid on Time?", "If Late, How Late", "Status", "Verification Score"];
         csvContent += headers.join(",") + "\n";
         filteredData.forEach(row => {
           const dataRow = [
@@ -503,7 +526,9 @@
             row["City & Country"] || "",
             row["Payment Method"] || "",
             row["Were you paid on time?"] || "",
-            row["If not, how late was the payment?"] || ""
+            row["If not, how late was the payment?"] || "",
+            row["Status"] || "",
+            row["Verification Score"] || ""
           ];
           csvContent += dataRow.join(",") + "\n";
         });
