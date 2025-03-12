@@ -1146,7 +1146,28 @@
       link.click();
       document.body.removeChild(link);
     });
-    
+    function sendDisputeData(disputeData) {
+  const endpoint = "https://script.google.com/macros/s/AKfycbyJ6g2A5Iqxe8rt7kjki_9vVfi6TXlyob1mtWy41aiyFhVVwTWEtt-t4ITFihiscGavTA/exec"; // Replace with your deployed web app URL.
+  
+  fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(disputeData)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.result === "success") {
+      alert("Your dispute has been submitted successfully.");
+    } else {
+      alert("Error submitting dispute: " + result.error);
+    }
+  })
+  .catch(error => {
+    console.error("Error:", error);
+    alert("An error occurred while submitting your dispute.");
+  });
+}
+
     /* --- Intersection Observer for Motion Effects --- */
     function observeElements() {
       const elements = document.querySelectorAll(".chart-box, .table-container, .filter-container");
