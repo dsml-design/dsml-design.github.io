@@ -662,13 +662,13 @@
         <canvas id="paymentMethodBarChart"></canvas>
       </div>
       
-      <!-- Top Cities Chart -->
+      <!-- Top Cities Chart (placeholder if needed) -->
       <div class="chart-box" id="boxCityChart">
         <h3>Top Locations by Report Volume</h3>
         <canvas id="topCitiesChart"></canvas>
       </div>
       
-      <!-- Payment Over Time Chart -->
+      <!-- Payment Over Time Chart (placeholder if needed) -->
       <div class="chart-box" id="boxTimeChart">
         <h3>Payment Trends Over Time</h3>
         <canvas id="paymentTrendChart"></canvas>
@@ -1005,7 +1005,7 @@
       }
       filteredData.forEach(row => {
         const tr = document.createElement("tr");
-        // For simplicity, the "Status" and "Verification Score" columns are placeholders
+        // For simplicity, "Status" and "Verification Score" columns are placeholders
         tr.innerHTML = `
           <td><span class="badge badge-success">Verified</span></td>
           <td>${row["Venue/Promoter Name"] || ""}</td>
@@ -1023,11 +1023,9 @@
     }
     
     function updateStats() {
-      // Example aggregation for stat cards. Replace with your own logic as needed.
       const totalReports = rawData.length;
       const onTimeCount = rawData.filter(row => row["Were you paid on time?"] === "yes").length;
       const onTimeRate = totalReports ? ((onTimeCount / totalReports) * 100).toFixed(0) + "%" : "-";
-      // Dummy values for verified and disputed reports:
       const verified = Math.floor(totalReports * 0.8);
       const disputed = Math.floor(totalReports * 0.1);
       
@@ -1038,7 +1036,57 @@
     }
     
     /* --- Modal & Form Handling --- */
-    // Quick Report Modal
+    // Set your endpoint URLs (replace with your deployed web app URLs)
+    const quickReportEndpoint = "https://script.google.com/macros/s/AKfycbyIN6g-6-GysREzkJf62kE_MS1EuM2nPWyteA0-dhIRgtK8yeDkYBDEZcIYgzu1SpbcAg/exec";
+    const disputeEndpoint = "https://script.google.com/macros/s/AKfycbyJ6g2A5Iqxe8rt7kjki_9vVfi6TXlyob1mtWy41aiyFhVVwTWEtt-t4ITFihiscGavTA/exec";
+    
+    // Function to send quick report data
+    function sendQuickReportData(reportData) {
+      fetch(quickReportEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reportData)
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.result === "success") {
+          alert("Your report has been submitted successfully. Thank you!");
+          // Optionally refresh data:
+          fetchData();
+        } else {
+          alert("Error submitting report: " + result.error);
+        }
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        alert("An error occurred while submitting your report.");
+      });
+    }
+    
+    // Function to send dispute data
+    function sendDisputeData(disputeData) {
+      fetch(disputeEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(disputeData)
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.result === "success") {
+          alert("Your dispute has been submitted successfully.");
+          // Optionally refresh data:
+          fetchData();
+        } else {
+          alert("Error submitting dispute: " + result.error);
+        }
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        alert("An error occurred while submitting your dispute.");
+      });
+    }
+    
+    // Quick Report Modal handling
     const submitModal = document.getElementById("submitModal");
     const openSubmitFormBtn = document.getElementById("openSubmitForm");
     const closeSubmitModalBtn = document.getElementById("closeSubmitModal");
@@ -1048,9 +1096,11 @@
       submitModal.style.display = "flex";
     });
     
-    closeSubmitModalBtn.addEventListener("click", () => {
-      submitModal.style.display = "none";
-    });
+    if(closeSubmitModalBtn) {
+      closeSubmitModalBtn.addEventListener("click", () => {
+        submitModal.style.display = "none";
+      });
+    }
     
     cancelSubmissionBtn.addEventListener("click", () => {
       submitModal.style.display = "none";
@@ -1058,12 +1108,32 @@
     
     document.getElementById("quickReportForm").addEventListener("submit", (e) => {
       e.preventDefault();
-      alert("Your report has been submitted. Thank you!");
+      // Gather form data for quick report submission
+      const reportData = {
+        venueName: document.getElementById("venueName").value,
+        venueLocation: document.getElementById("venueLocation").value,
+        paymentMethod: document.getElementById("paymentMethod").value,
+        paidOnTime: document.getElementById("paidOnTime").value,
+        howLate: document.getElementById("howLate").value,
+        eventType: document.getElementById("eventType").value,
+        additionalInfo: document.getElementById("additionalInfo").value
+      };
+      sendQuickReportData(reportData);
       submitModal.style.display = "none";
-      // Optionally, add code to save the submission.
+      // Optionally, reset the form here.
+      document.getElementById("quickReportForm").reset();
     });
     
-    // Dispute Modal
+    // Show/hide late payment container based on "paidOnTime" value
+    document.getElementById("paidOnTime").addEventListener("change", function() {
+      if (this.value === "no") {
+        document.getElementById("latePaymentContainer").style.display = "block";
+      } else {
+        document.getElementById("latePaymentContainer").style.display = "none";
+      }
+    });
+    
+    // Dispute Modal handling
     const disputeModal = document.getElementById("disputeModal");
     const closeDisputeModalBtn = document.getElementById("closeDisputeModal");
     const cancelDisputeBtn = document.getElementById("cancelDispute");
@@ -1073,7 +1143,7 @@
     document.addEventListener("click", function(e) {
       if (e.target && e.target.classList.contains("open-dispute")) {
         disputeModal.style.display = "flex";
-        // Optionally, populate hidden fields based on the report row.
+        // Optionally, populate hidden fields with related report data.
       }
     });
     
@@ -1101,16 +1171,35 @@
       });
     });
     
+    // Venue Dispute Form submission
     document.getElementById("venueDisputeForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      alert("Your dispute has been submitted for review.");
+      const disputeData = {
+        disputeType: "venue",
+        venueName: document.getElementById("disputeVenueName").value,
+        contactPerson: document.getElementById("contactPerson").value,
+        contactEmail: document.getElementById("contactEmail").value,
+        disputeReason: document.getElementById("disputeReason").value,
+        disputeEvidence: document.getElementById("disputeEvidence").value
+      };
+      sendDisputeData(disputeData);
       disputeModal.style.display = "none";
+      document.getElementById("venueDisputeForm").reset();
     });
     
+    // Artist Dispute Form submission
     document.getElementById("artistDisputeForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      alert("Your dispute has been submitted for review.");
+      const disputeData = {
+        disputeType: "artist",
+        artistName: document.getElementById("artistName").value,
+        artistEmail: document.getElementById("artistEmail").value,
+        artistDisputeReason: document.getElementById("artistDisputeReason").value,
+        artistDisputeExplanation: document.getElementById("artistDisputeExplanation").value
+      };
+      sendDisputeData(disputeData);
       disputeModal.style.display = "none";
+      document.getElementById("artistDisputeForm").reset();
     });
     
     // Filter Buttons
@@ -1146,28 +1235,7 @@
       link.click();
       document.body.removeChild(link);
     });
-    function sendDisputeData(disputeData) {
-  const endpoint = "https://script.google.com/macros/s/AKfycbyJ6g2A5Iqxe8rt7kjki_9vVfi6TXlyob1mtWy41aiyFhVVwTWEtt-t4ITFihiscGavTA/exec"; // Replace with your deployed web app URL.
-  
-  fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(disputeData)
-  })
-  .then(response => response.json())
-  .then(result => {
-    if (result.result === "success") {
-      alert("Your dispute has been submitted successfully.");
-    } else {
-      alert("Error submitting dispute: " + result.error);
-    }
-  })
-  .catch(error => {
-    console.error("Error:", error);
-    alert("An error occurred while submitting your dispute.");
-  });
-}
-
+    
     /* --- Intersection Observer for Motion Effects --- */
     function observeElements() {
       const elements = document.querySelectorAll(".chart-box, .table-container, .filter-container");
