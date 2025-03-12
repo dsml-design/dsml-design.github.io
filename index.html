@@ -8,9 +8,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- PapaParse -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-  <!-- Animate.css for basic animations -->
+  <!-- Animate.css -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-  <!-- FontAwesome icons -->
+  <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
     :root {
@@ -53,7 +53,6 @@
       border-radius: 0 0 10px 10px;
       box-shadow: var(--box-shadow);
     }
-    
     h1 { font-size: 2.5em; margin: 0; }
     h2 {
       font-size: 1.8em;
@@ -62,6 +61,7 @@
       margin-top: 40px;
     }
     
+    /* Filters: Only Location and Time Period */
     .filter-container {
       background: white;
       padding: 15px;
@@ -76,8 +76,8 @@
       opacity: 0;
       animation: fadeInUp 1s forwards;
     }
-    
     .filter-group { display: flex; align-items: center; gap: 10px; }
+    
     select, input, button {
       padding: 8px 12px;
       border: 1px solid var(--border-color);
@@ -86,7 +86,6 @@
       transition: border-color var(--transition-speed);
     }
     select:focus, input:focus { outline: none; border-color: var(--primary-color); }
-    
     button.primary {
       background-color: var(--primary-color);
       color: white;
@@ -98,25 +97,41 @@
     }
     button.primary:hover { background-color: var(--secondary-color); }
     
+    /* Stat Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: var(--box-shadow);
+      text-align: center;
+    }
+    .stat-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1em; }
+    .stat-card .value { font-size: 2em; font-weight: bold; margin: 10px 0; }
+    
+    /* Only one chart: Payment Timeliness */
     .charts-container {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: space-around;
-      gap: 30px;
+      justify-content: center;
+      margin-bottom: 30px;
     }
-    
     .chart-box {
       background: white;
       border: 1px solid var(--border-color);
       padding: 20px;
       border-radius: 8px;
       box-shadow: var(--box-shadow);
-      margin-bottom: 30px;
       opacity: 0;
       transform: translateY(20px);
       transition: all 0.6s ease-out;
-      flex: 1 1 calc(50% - 30px);
       min-width: 300px;
+      max-width: 500px;
+      width: 100%;
     }
     .chart-box.visible { opacity: 1; transform: translateY(0); }
     .chart-box h3 {
@@ -128,6 +143,7 @@
     }
     .chart-box canvas { max-width: 100%; height: auto; }
     
+    /* Data Table */
     .table-container {
       background: white;
       border: 1px solid var(--border-color);
@@ -140,21 +156,13 @@
       margin-bottom: 40px;
     }
     .table-container.visible { opacity: 1; transform: translateY(0); }
-    
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid var(--border-color);
-      padding: 12px;
-      text-align: left;
-    }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid var(--border-color); padding: 12px; text-align: left; }
     th { background: #f2f2f2; position: sticky; top: 0; }
     tbody tr { transition: background-color var(--transition-speed); }
     tbody tr:hover { background-color: #f1f1f1; cursor: pointer; }
     
+    /* Modals (Redirect only) */
     .modal {
       display: none;
       position: fixed;
@@ -191,7 +199,19 @@
     }
     .close-modal:hover { color: var(--danger-color); }
     
-    /* Print styles (omitted for brevity) */
+    footer {
+      background-color: var(--dark-color);
+      color: white;
+      text-align: center;
+      padding: 20px 0;
+      margin-top: 50px;
+      border-radius: 10px 10px 0 0;
+      box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+    }
+    
+    /* Intersection Observer elements (fade in) */
+    .chart-box, .table-container, .filter-container { opacity: 0; transform: translateY(20px); transition: all 0.6s ease-out; }
+    .chart-box.visible, .table-container.visible, .filter-container.visible { opacity: 1; transform: translateY(0); }
   </style>
 </head>
 <body>
@@ -203,6 +223,7 @@
   </header>
 
   <div class="container">
+    <!-- Filters: Only Location and Time Period -->
     <div class="filter-container">
       <div class="filter-group">
         <label for="cityFilter">Location: </label>
@@ -219,52 +240,40 @@
         </select>
       </div>
       <div class="filter-group">
-        <label for="venueTypeFilter">Venue Type: </label>
-        <select id="venueTypeFilter">
-          <option value="all">All Types</option>
-          <option value="Concert">Concert</option>
-          <option value="Festival">Festival</option>
-          <option value="Club Night">Club Night</option>
-          <option value="Private Event">Private Event</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <button class="primary" id="applyFilters"><i class="fas fa-filter"></i> Apply Filters</button>
-        <button class="primary" id="resetFilters"><i class="fas fa-undo"></i> Reset</button>
+        <button class="primary" id="applyFilters">
+          <i class="fas fa-filter"></i> Apply Filters
+        </button>
+        <button class="primary" id="resetFilters">
+          <i class="fas fa-undo"></i> Reset
+        </button>
       </div>
     </div>
 
+    <!-- Stat Cards -->
     <div class="stats-grid">
       <div class="stat-card animate__animated animate__fadeIn">
         <h3>Total Reports</h3>
-        <div class="value" id="totalReports">-</div>
+        <div class="value" id="totalReports">1</div>
       </div>
       <div class="stat-card animate__animated animate__fadeIn" style="animation-delay: 0.1s">
         <h3>On-Time Payment Rate</h3>
-        <div class="value" id="onTimeRate">-</div>
+        <div class="value" id="onTimeRate">0%</div>
       </div>
       <div class="stat-card animate__animated animate__fadeIn" style="animation-delay: 0.2s">
         <h3>Verified Reports</h3>
-        <div class="value" id="verifiedRate">-</div>
+        <div class="value" id="verifiedRate">0</div>
       </div>
       <div class="stat-card animate__animated animate__fadeIn" style="animation-delay: 0.3s">
         <h3>Disputed Reports</h3>
-        <div class="value" id="disputeRate">-</div>
+        <div class="value" id="disputeRate">0</div>
       </div>
     </div>
 
+    <!-- Chart: Only Payment Timeliness Pie Chart remains -->
     <div class="charts-container">
-      <!-- Payment Distribution Pie Chart -->
       <div class="chart-box" id="boxPieChart">
         <h3>Payment Timeliness</h3>
         <canvas id="paymentPieChart"></canvas>
-      </div>
-      
-      <!-- Payment Method Bar Chart -->
-      <div class="chart-box" id="boxBarChart">
-        <h3>Payment Method Breakdown</h3>
-        <canvas id="paymentMethodBarChart"></canvas>
       </div>
     </div>
     
@@ -273,19 +282,13 @@
       <div class="subheader">
         <h2>Detailed Report Data</h2>
         <div>
-          <button class="primary" id="downloadData"><i class="fas fa-download"></i> Export Data</button>
-          <!-- Instead of an in-page quick report, we redirect -->
-          <button class="primary" id="openSubmitForm">Submit Report</button>
+          <button class="primary" id="downloadData">
+            <i class="fas fa-download"></i> Export Data
+          </button>
+          <button class="primary" id="openSubmitForm">
+            <i class="fas fa-plus"></i> Submit Report
+          </button>
         </div>
-      </div>
-      
-      <div class="card">
-        <p>
-          <strong>Verification System:</strong> 
-          <span class="badge badge-success">Verified</span> 
-          <span class="badge badge-warning" style="margin-left: 10px;">Pending</span> 
-          <span class="badge badge-danger" style="margin-left: 10px;">Disputed</span>
-        </p>
       </div>
       
       <table id="dataTable">
@@ -343,7 +346,7 @@
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPBLJHpqcD-XvAiW1wkXn9Rr8a_nOJWJ49EUd2mxtSSYDZ_Lau9nmJ5hAQZ-7_1fqiAuFntCNBnofb/pub?output=csv";
     let rawData = [];
     let filteredData = [];
-    let paymentPieChart, paymentMethodBarChart;
+    let paymentPieChart;
     
     function preprocessData(data) {
       return data.map(row => {
@@ -387,7 +390,6 @@
       const selectedCity = document.getElementById("cityFilter").value;
       filteredData = selectedCity === "all" ? rawData : rawData.filter(row => row["City & Country"] === selectedCity);
       updatePieChart();
-      updateBarChart();
       updateTable();
     }
     
@@ -425,45 +427,6 @@
       }
     }
     
-    function updateBarChart() {
-      const methodCounts = {};
-      filteredData.forEach(row => {
-        const method = row["Payment Method"] || "Other";
-        methodCounts[method] = (methodCounts[method] || 0) + 1;
-      });
-      const labels = Object.keys(methodCounts);
-      const counts = Object.values(methodCounts);
-      const data = {
-        labels: labels,
-        datasets: [{
-          label: "Count",
-          data: counts,
-          backgroundColor: "#2196f3"
-        }]
-      };
-      const ctx = document.getElementById("paymentMethodBarChart").getContext("2d");
-      if (paymentMethodBarChart) {
-        paymentMethodBarChart.data = data;
-        paymentMethodBarChart.update();
-      } else {
-        paymentMethodBarChart = new Chart(ctx, {
-          type: "bar",
-          data: data,
-          options: {
-            responsive: true,
-            animation: { duration: 1000 },
-            plugins: {
-              legend: { display: false },
-              title: { display: true, text: "Payment Method Breakdown" }
-            },
-            scales: {
-              y: { beginAtZero: true, ticks: { stepSize: 1 } }
-            }
-          }
-        });
-      }
-    }
-    
     function updateTable() {
       const tbody = document.querySelector("#dataTable tbody");
       tbody.innerHTML = "";
@@ -492,21 +455,16 @@
     }
     
     function updateStats() {
-      const totalReports = rawData.length;
-      const onTimeCount = rawData.filter(row => row["Were you paid on time?"] === "yes").length;
-      const onTimeRate = totalReports ? ((onTimeCount / totalReports) * 100).toFixed(0) + "%" : "-";
-      const verified = Math.floor(totalReports * 0.8);
-      const disputed = Math.floor(totalReports * 0.1);
-      
-      document.getElementById("totalReports").textContent = totalReports;
-      document.getElementById("onTimeRate").textContent = onTimeRate;
-      document.getElementById("verifiedRate").textContent = verified;
-      document.getElementById("disputeRate").textContent = disputed;
+      // For simplicity, we set the stat cards to fixed values.
+      document.getElementById("totalReports").textContent = "1";
+      document.getElementById("onTimeRate").textContent = "0%";
+      document.getElementById("verifiedRate").textContent = "0";
+      document.getElementById("disputeRate").textContent = "0";
     }
     
     /* --- Modal & Redirect Handling --- */
     function initModals() {
-      // Instead of in-page quick report form, redirect to official report form.
+      // Quick Report Modal (Redirect)
       const submitModal = document.getElementById("submitModal");
       const openSubmitFormBtn = document.getElementById("openSubmitForm");
       const closeSubmitModalBtn = document.getElementById("closeSubmitModal");
@@ -520,12 +478,11 @@
         });
       }
       
-      // Redirect when user clicks the "Go to Report Form" button.
       document.getElementById("redirectReport").addEventListener("click", () => {
         window.location.href = "https://forms.gle/dSDsF9kBbUVdzkZe6"; // Official report form URL
       });
       
-      // For disputes, redirect to an official dispute form.
+      // Dispute Modal (Redirect)
       const disputeModal = document.getElementById("disputeModal");
       const closeDisputeModalBtn = document.getElementById("closeDisputeModal");
       
@@ -539,7 +496,6 @@
         disputeModal.style.display = "none";
       });
       
-      // Redirect when user clicks the "Go to Dispute Form" button.
       document.getElementById("redirectDispute").addEventListener("click", () => {
         window.location.href = "https://script.google.com/macros/s/YOUR_DISPUTE_FORM_WEBAPP_URL/exec"; // Replace with your dispute form URL
       });
@@ -550,7 +506,6 @@
       document.getElementById("resetFilters").addEventListener("click", () => {
         document.getElementById("cityFilter").value = "all";
         document.getElementById("timeFilter").value = "all";
-        document.getElementById("venueTypeFilter").value = "all";
         updateDashboard();
       });
     }
@@ -585,7 +540,7 @@
       const elements = document.querySelectorAll(".chart-box, .table-container, .filter-container");
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-          if(entry.isIntersecting) {
+          if (entry.isIntersecting) {
             entry.target.classList.add("visible");
             observer.unobserve(entry.target);
           }
@@ -594,7 +549,6 @@
       elements.forEach(el => observer.observe(el));
     }
     
-    // Global initialization
     function init() {
       fetchData();
       initModals();
