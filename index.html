@@ -470,49 +470,6 @@
       margin: 10px 0;
     }
     
-    .timeline {
-      position: relative;
-      margin: 30px 0;
-      padding-left: 30px;
-    }
-    
-    .timeline::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      height: 100%;
-      width: 3px;
-      background-color: var(--primary-color);
-    }
-    
-    .timeline-item {
-      position: relative;
-      padding-bottom: 20px;
-    }
-    
-    .timeline-marker {
-      position: absolute;
-      left: -39px;
-      width: 15px;
-      height: 15px;
-      border-radius: 50%;
-      background-color: var(--primary-color);
-      border: 3px solid white;
-    }
-    
-    .timeline-content {
-      padding: 15px;
-      background-color: white;
-      border-radius: 5px;
-      box-shadow: var(--box-shadow);
-    }
-    
-    .timeline-date {
-      color: #777;
-      font-size: 0.9em;
-    }
-    
     footer {
       background-color: var(--dark-color);
       color: white;
@@ -602,11 +559,6 @@
         flex-direction: column;
         align-items: flex-start;
       }
-      
-      .modal-content {
-        width: 95%;
-        padding: 20px;
-      }
     }
     
     /* Print styles */
@@ -656,6 +608,11 @@
         <label for="venueTypeFilter">Venue Type: </label>
         <select id="venueTypeFilter">
           <option value="all">All Types</option>
+          <option value="Concert">Concert</option>
+          <option value="Festival">Festival</option>
+          <option value="Club Night">Club Night</option>
+          <option value="Private Event">Private Event</option>
+          <option value="Other">Other</option>
         </select>
       </div>
       <div class="filter-group">
@@ -773,9 +730,7 @@
       <span class="close-modal" id="closeSubmitModal">&times;</span>
       <h2>Submit New Report</h2>
       <p>Share your experience anonymously. Your report helps create transparency in the industry.</p>
-      
       <p>For full submission with all details, please use <a href="https://forms.gle/dSDsF9kBbUVdzkZe6" target="_blank">our official form</a>.</p>
-      
       <form id="quickReportForm">
         <label for="venueName">Venue/Promoter Name:</label>
         <input type="text" id="venueName" required placeholder="Enter name of venue or promoter">
@@ -839,27 +794,20 @@
     <div class="modal-content">
       <span class="close-modal" id="closeDisputeModal">&times;</span>
       <h2>File a Dispute</h2>
-      
       <div class="tabs">
         <div class="tab active" data-tab="venueDispute">I represent a venue/promoter</div>
         <div class="tab" data-tab="artistDispute">I'm an artist contesting a report</div>
       </div>
-      
       <div class="tab-content active" id="venueDispute">
-        <p>If you represent a venue or promoter and believe information reported is incorrect, please provide details below:</p>
-        
+        <p>If you represent a venue or promoter and believe the reported information is incorrect, please provide details below:</p>
         <form id="venueDisputeForm">
           <input type="hidden" id="disputeReportId">
-          
-          <label for="venueName">Venue/Promoter Name:</label>
+          <label for="disputeVenueName">Venue/Promoter Name:</label>
           <input type="text" id="disputeVenueName" required placeholder="Your venue or company name">
-          
           <label for="contactPerson">Contact Person:</label>
           <input type="text" id="contactPerson" required placeholder="Your full name">
-          
           <label for="contactEmail">Contact Email:</label>
           <input type="email" id="contactEmail" required placeholder="Your email for verification">
-          
           <label for="disputeReason">Reason for Dispute:</label>
           <select id="disputeReason" required>
             <option value="">Select reason</option>
@@ -869,38 +817,22 @@
             <option value="not_our_venue">Not Our Venue/Company</option>
             <option value="other">Other</option>
           </select>
-          
           <label for="disputeEvidence">Evidence or Explanation:</label>
           <textarea id="disputeEvidence" required placeholder="Please provide details to support your dispute"></textarea>
-          
-          <div class="card">
-            <p><strong>Note:</strong> By submitting this form, you agree to our verification process, which may include:</p>
-            <ul>
-              <li>Verification of your identity and position at the venue/company</li>
-              <li>Review of documented evidence</li>
-              <li>Possible mediation between parties</li>
-            </ul>
-          </div>
-          
           <div class="form-actions">
             <button type="button" class="btn btn-secondary" id="cancelDispute">Cancel</button>
             <button type="submit" class="btn btn-primary">Submit Dispute</button>
           </div>
         </form>
       </div>
-      
       <div class="tab-content" id="artistDispute">
-        <p>If you're an artist and believe a reported experience doesn't match reality or needs additional context:</p>
-        
+        <p>If you're an artist and believe the reported information needs correction or additional context, please provide details below:</p>
         <form id="artistDisputeForm">
           <input type="hidden" id="artistDisputeReportId">
-          
           <label for="artistName">Your Artist Name/Alias:</label>
           <input type="text" id="artistName" placeholder="Your artist name or alias (optional)">
-          
           <label for="artistEmail">Contact Email:</label>
           <input type="email" id="artistEmail" required placeholder="Your email for verification">
-          
           <label for="artistDisputeReason">Issue with Report:</label>
           <select id="artistDisputeReason" required>
             <option value="">Select issue</option>
@@ -910,6 +842,328 @@
             <option value="add_context">Additional Context Needed</option>
             <option value="other">Other</option>
           </select>
-          
           <label for="artistDisputeExplanation">Explanation:</label>
-          <textarea id="artistDisputeExplanation" required placeholder="Please explain
+          <textarea id="artistDisputeExplanation" required placeholder="Please explain"></textarea>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancelArtistDispute">Cancel</button>
+            <button type="submit" class="btn btn-primary">Submit Dispute</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2025 Artist Payment Dashboard. All rights reserved.</p>
+  </footer>
+
+  <script>
+    /* --- Data Handling & Visualization --- */
+    // Replace with your published CSV URL from Google Sheets (CSV format)
+    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSPBLJHpqcD-XvAiW1wkXn9Rr8a_nOJWJ49EUd2mxtSSYDZ_Lau9nmJ5hAQZ-7_1fqiAuFntCNBnofb/pub?output=csv";
+    let rawData = [];
+    let filteredData = [];
+    
+    // Chart instances
+    let paymentPieChart, paymentMethodBarChart;
+    
+    /**
+     * Preprocess the raw data to normalize inputs and ensure required fields.
+     */
+    function preprocessData(data) {
+      return data.map(row => {
+        row["City & Country"] = row["City & Country"] ? row["City & Country"].trim() : "Unknown";
+        row["Were you paid on time?"] = row["Were you paid on time?"] ? row["Were you paid on time?"].trim().toLowerCase() : "unknown";
+        row["Payment Method"] = row["Payment Method"] ? row["Payment Method"].trim() : "Other";
+        row["If not, how late was the payment?"] = row["If not, how late was the payment?"] ? row["If not, how late was the payment?"].trim() : "";
+        // Optionally preprocess time and venue type fields if provided.
+        return row;
+      });
+    }
+    
+    function fetchData() {
+      Papa.parse(csvUrl, {
+        download: true,
+        header: true,
+        complete: function(results) {
+          rawData = results.data.filter(row => Object.values(row).some(cell => cell !== ""));
+          rawData = preprocessData(rawData);
+          populateCityFilter();
+          updateDashboard();
+          updateStats();
+        },
+        error: function(err) {
+          console.error("Error fetching CSV data:", err);
+        }
+      });
+    }
+    
+    function populateCityFilter() {
+      const cityFilter = document.getElementById("cityFilter");
+      const cities = new Set(rawData.map(row => row["City & Country"]).filter(Boolean));
+      cities.forEach(city => {
+        const option = document.createElement("option");
+        option.value = city;
+        option.textContent = city;
+        cityFilter.appendChild(option);
+      });
+    }
+    
+    function updateDashboard() {
+      const selectedCity = document.getElementById("cityFilter").value;
+      // Future: apply additional filters (time period, venue type)
+      filteredData = selectedCity === "all" ? rawData : rawData.filter(row => row["City & Country"] === selectedCity);
+      updatePieChart();
+      updateBarChart();
+      updateTable();
+    }
+    
+    function updatePieChart() {
+      let onTime = 0, late = 0;
+      filteredData.forEach(row => {
+        const response = row["Were you paid on time?"];
+        if (response === "yes") onTime++;
+        else if (response === "no") late++;
+      });
+      const data = {
+        labels: ["Paid on Time", "Not Paid on Time"],
+        datasets: [{
+          data: [onTime, late],
+          backgroundColor: ["#4caf50", "#f44336"]
+        }]
+      };
+      const ctx = document.getElementById("paymentPieChart").getContext("2d");
+      if (paymentPieChart) {
+        paymentPieChart.data = data;
+        paymentPieChart.update();
+      } else {
+        paymentPieChart = new Chart(ctx, {
+          type: "pie",
+          data: data,
+          options: {
+            responsive: true,
+            animation: { animateRotate: true, animateScale: true },
+            plugins: {
+              legend: { position: "bottom" },
+              title: { display: true, text: "Payment Timeliness" }
+            }
+          }
+        });
+      }
+    }
+    
+    function updateBarChart() {
+      const methodCounts = {};
+      filteredData.forEach(row => {
+        const method = row["Payment Method"] || "Other";
+        methodCounts[method] = (methodCounts[method] || 0) + 1;
+      });
+      const labels = Object.keys(methodCounts);
+      const counts = Object.values(methodCounts);
+      const data = {
+        labels: labels,
+        datasets: [{
+          label: "Count",
+          data: counts,
+          backgroundColor: "#2196f3"
+        }]
+      };
+      const ctx = document.getElementById("paymentMethodBarChart").getContext("2d");
+      if (paymentMethodBarChart) {
+        paymentMethodBarChart.data = data;
+        paymentMethodBarChart.update();
+      } else {
+        paymentMethodBarChart = new Chart(ctx, {
+          type: "bar",
+          data: data,
+          options: {
+            responsive: true,
+            animation: { duration: 1000 },
+            plugins: {
+              legend: { display: false },
+              title: { display: true, text: "Payment Method Breakdown" }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { stepSize: 1 }
+              }
+            }
+          }
+        });
+      }
+    }
+    
+    function updateTable() {
+      const tbody = document.querySelector("#dataTable tbody");
+      tbody.innerHTML = "";
+      if (filteredData.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="8" class="text-center">No data available.</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+      filteredData.forEach(row => {
+        const tr = document.createElement("tr");
+        // For simplicity, the "Status" and "Verification Score" columns are placeholders
+        tr.innerHTML = `
+          <td><span class="badge badge-success">Verified</span></td>
+          <td>${row["Venue/Promoter Name"] || ""}</td>
+          <td>${row["City & Country"] || ""}</td>
+          <td>${row["Payment Method"] || ""}</td>
+          <td>${row["Were you paid on time?"] || ""}</td>
+          <td>${row["If not, how late was the payment?"] || ""}</td>
+          <td>85%</td>
+          <td>
+            <button class="btn btn-secondary btn-sm open-dispute">Dispute</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    
+    function updateStats() {
+      // Example aggregation for stat cards. Replace with your own logic as needed.
+      const totalReports = rawData.length;
+      const onTimeCount = rawData.filter(row => row["Were you paid on time?"] === "yes").length;
+      const onTimeRate = totalReports ? ((onTimeCount / totalReports) * 100).toFixed(0) + "%" : "-";
+      // Dummy values for verified and disputed reports:
+      const verified = Math.floor(totalReports * 0.8);
+      const disputed = Math.floor(totalReports * 0.1);
+      
+      document.getElementById("totalReports").textContent = totalReports;
+      document.getElementById("onTimeRate").textContent = onTimeRate;
+      document.getElementById("verifiedRate").textContent = verified;
+      document.getElementById("disputeRate").textContent = disputed;
+    }
+    
+    /* --- Modal & Form Handling --- */
+    // Quick Report Modal
+    const submitModal = document.getElementById("submitModal");
+    const openSubmitFormBtn = document.getElementById("openSubmitForm");
+    const closeSubmitModalBtn = document.getElementById("closeSubmitModal");
+    const cancelSubmissionBtn = document.getElementById("cancelSubmission");
+    
+    openSubmitFormBtn.addEventListener("click", () => {
+      submitModal.style.display = "flex";
+    });
+    
+    closeSubmitModalBtn.addEventListener("click", () => {
+      submitModal.style.display = "none";
+    });
+    
+    cancelSubmissionBtn.addEventListener("click", () => {
+      submitModal.style.display = "none";
+    });
+    
+    document.getElementById("quickReportForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      alert("Your report has been submitted. Thank you!");
+      submitModal.style.display = "none";
+      // Optionally, add code to save the submission.
+    });
+    
+    // Dispute Modal
+    const disputeModal = document.getElementById("disputeModal");
+    const closeDisputeModalBtn = document.getElementById("closeDisputeModal");
+    const cancelDisputeBtn = document.getElementById("cancelDispute");
+    const cancelArtistDisputeBtn = document.getElementById("cancelArtistDispute");
+    
+    // Open dispute modal when clicking any "Dispute" button in the table
+    document.addEventListener("click", function(e) {
+      if (e.target && e.target.classList.contains("open-dispute")) {
+        disputeModal.style.display = "flex";
+        // Optionally, populate hidden fields based on the report row.
+      }
+    });
+    
+    closeDisputeModalBtn.addEventListener("click", () => {
+      disputeModal.style.display = "none";
+    });
+    cancelDisputeBtn.addEventListener("click", () => {
+      disputeModal.style.display = "none";
+    });
+    cancelArtistDisputeBtn.addEventListener("click", () => {
+      disputeModal.style.display = "none";
+    });
+    
+    // Tab switching for dispute modal
+    const tabs = document.querySelectorAll(".tab");
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        tabs.forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        const target = tab.getAttribute("data-tab");
+        document.querySelectorAll(".tab-content").forEach(content => {
+          content.classList.remove("active");
+          if(content.id === target) content.classList.add("active");
+        });
+      });
+    });
+    
+    document.getElementById("venueDisputeForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      alert("Your dispute has been submitted for review.");
+      disputeModal.style.display = "none";
+    });
+    
+    document.getElementById("artistDisputeForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      alert("Your dispute has been submitted for review.");
+      disputeModal.style.display = "none";
+    });
+    
+    // Filter Buttons
+    document.getElementById("applyFilters").addEventListener("click", updateDashboard);
+    
+    document.getElementById("resetFilters").addEventListener("click", () => {
+      document.getElementById("cityFilter").value = "all";
+      document.getElementById("timeFilter").value = "all";
+      document.getElementById("venueTypeFilter").value = "all";
+      updateDashboard();
+    });
+    
+    // Download Data (simple CSV export of the filtered data)
+    document.getElementById("downloadData").addEventListener("click", () => {
+      let csvContent = "data:text/csv;charset=utf-8,";
+      const headers = ["Venue/Promoter Name", "City & Country", "Payment Method", "Paid on Time?", "If Late, How Late"];
+      csvContent += headers.join(",") + "\n";
+      filteredData.forEach(row => {
+        const dataRow = [
+          row["Venue/Promoter Name"] || "",
+          row["City & Country"] || "",
+          row["Payment Method"] || "",
+          row["Were you paid on time?"] || "",
+          row["If not, how late was the payment?"] || ""
+        ];
+        csvContent += dataRow.join(",") + "\n";
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "artist_payment_reports.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+    
+    /* --- Intersection Observer for Motion Effects --- */
+    function observeElements() {
+      const elements = document.querySelectorAll(".chart-box, .table-container, .filter-container");
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if(entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.2 });
+      elements.forEach(el => observer.observe(el));
+    }
+    
+    // Initial data fetch and observer setup
+    fetchData();
+    window.onload = observeElements;
+  </script>
+</body>
+</html>
